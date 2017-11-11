@@ -1,6 +1,7 @@
 require 'rubygems'
 require 'nokogiri'
 require 'open-uri'
+require 'uri'
 require 'open_uri_redirections'
 require 'byebug'
 require 'net/http'
@@ -16,18 +17,22 @@ def trimUrl(url)
 	url
 end
 
-def getImgUrlIfBase24(imgUrl, page)
-	if imgUrl.include? "data:image/jpeg;base64"
-		imgUrl = page.at_css('[id="imgTagWrapperId"]').css('img').attr('data-old-hires').to_s
+def getImgUrlIfBase24(imgElement)
+	el = imgElement.css('img').attr('src')
+
+	if el.to_s.include? "data:image/jpeg;base64"
+		el = JSON.parse(imgElement.css("img").attr("data-a-dynamic-image").value).keys[0]
 	end
-	imgUrl
+
+	el.to_s
 end
 
 def removeCurrencyFromPrice(price)
 	price = price.gsub(/[$£EUR ]/, '')
 end
 
-def changeImgUrlToFormat(imgUrl, format)
+def changeImgUrlToFormat(imgUrl, size)
+	format = "._SL#{size}_"
 	imgUrl = imgUrl.gsub(/\.\_S\w[0-9]+\_/, format)
 end
 
@@ -56,20 +61,54 @@ end
 def createProductFromUrl(url,apiHost,secret)
 	url = trimUrl(url)
 
+	puts ""
+	puts "Fetching '#{url}'..."
+
+	res = Net::HTTP.get_response(URI(url))
+	return puts "Page not found" if res.code == '404'
+
 	page = Nokogiri::HTML(open(url, allow_redirections: :safe, "User-Agent" => "", "From" => "foo@bar.invalid", "Referer" => "http://www.ruby-lang.org/"))
 	# todo add 503 response handler
 
-	name = page.at_css('[id="productTitle"]').text.strip
-	price = page.at_css('[id="priceblock_ourprice"]').text.strip.split('-')[0]
-	rating = page.at_css('[id="averageCustomerReviews"]').css('i.a-icon-star').css("span.a-icon-alt").text
+	if name = page.at_css('[id="productTitle"]')
+		name = name.text.strip
+	elsif name = page.at_css('#title span')
+		name = name.text.strip
+	end
 
-	imgPageElement = page.at_css('[id="imgTagWrapperId"]').css('img').attr('src')
-	imgUrl = getImgUrlIfBase24(imgPageElement.to_s, page)
+	return puts "No product name..." unless name
+	
+
+	price = page.at_css('[id="priceblock_ourprice"]')
+
+	if price 
+		price = price.text.strip.split('-')[0]
+	elsif price = page.at_css('span.offer-price')
+		price = price.text
+	elsif price = page.at_css('#priceblock_saleprice')
+		price = price.text
+	elsif price = page.at_css('.a-color-price')
+		price = price.text
+	end
+
+	return puts "No product price..." unless price
+
+	rating = page.at_css('[id="averageCustomerReviews"]').css('i.a-icon-star').css("span.a-icon-alt").text
+	return puts "No product rating..." unless rating
+
+	if imgPageElement = page.at_css('[id="imgTagWrapperId"]')
+	elsif imgPageElement = page.at_css('#img-canvas')
+	elsif imgPageElement = page.at_css('#ebooks-img-canvas')
+	end
+
+	return puts "No product image..." unless imgPageElement
+
+	imgUrl = getImgUrlIfBase24(imgPageElement)
 
 	currency = getCurrencyFromPrice(price)
 	price = removeCurrencyFromPrice(price)
 
-	imgUrl = changeImgUrlToFormat(imgUrl, '_SL400_')
+	imgUrl = changeImgUrlToFormat(imgUrl, 400)
 
 	params = {
 		'name' => name,
@@ -79,6 +118,7 @@ def createProductFromUrl(url,apiHost,secret)
 		'rating' => rating,
 		'url' => url
 	}
+	puts params;
 
 	sendProductToApi(apiHost, params, secret)
 
@@ -96,6 +136,7 @@ else
 	secret = arguments[2].to_s	
 
 	File.open(file).readlines.each do |url|
+		next if url[0] == "#"
 		createProductFromUrl(url,apiHost,secret)	
 	end
 end
