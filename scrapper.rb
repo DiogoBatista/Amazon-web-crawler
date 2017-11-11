@@ -8,11 +8,17 @@ page = Nokogiri::HTML(open(url, :allow_redirections => :safe))
 title =  page.at_css('[id="productTitle"]').text.strip 
 price =  page.at_css('[id="priceblock_ourprice"]').text.strip.split('-')[0]
 
-if price.include? "$"
-   currency = 'dolar'
-   price = price.tr('$', '')
+
+
+if price.include? "EUR "
+   currency = 'euro'
+elsif price.include? "$"
+   	currency = 'dolar'
+   else price.include? "£"
+   	currency = 'pound'
 end
 
+price = price.gsub(/[$£EUR ]/, '')
 puts title
 puts price
 puts currency
