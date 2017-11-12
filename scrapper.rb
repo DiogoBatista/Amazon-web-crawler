@@ -19,7 +19,7 @@ HELP = <<ENDHELP
 -h, --help       Show this help.
 -f, --file       The input file with Amazon links, one per line
 -a, --api        The API endpoing where you want to do the POST request.
- -s, --secret     Send this value as an Authorization Header. This is not a mandatory field.
+-s, --secret     Send this value as an Authorization Header. This is not a mandatory field.
 ENDHELP
 
  ARGS = {}
