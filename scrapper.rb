@@ -7,6 +7,8 @@ require 'byebug'
 require 'net/http'
 require 'json'
 
+@results = { success: 0, failed: 0, error: [], repeated:0 }
+
 def trimUrl(url)
 	url = url.to_s.strip
 
@@ -59,6 +61,17 @@ def sendProductToApi(apiHost, params, authorization)
 		})
 	req.body = params.to_json
 	res = Net::HTTP.start(apiUrl.hostname, apiUrl.port).request(req)
+	
+	case res.code.to_i
+	when 201
+		@results[:success] = @results[:success] + 1 	
+	when 409
+		@results[:repeated] = @results[:repeated] + 1 	
+	else 
+		@results[:failed] = @results[:failed] + 1 	
+		@results[:error] << {code: res.code, url: params['url'] }
+	end
+	
 	puts res.inspect
 end
 
@@ -142,6 +155,14 @@ else
 	File.open(file).readlines.each do |url|
 		next if url[0] == "#"
 		createProductFromUrl(url,apiHost,secret)	
+	end
+	puts ""
+	puts "Successes: #{@results[:success]}, Failed: #{@results[:failed]}, repeated #{@results[:repeated]}"
+	if @results[:error].length > 0 
+		puts ""
+		@results[:error].each do |e|
+			puts "#{e[:code]} >> #{e[:url]} "
+		end
 	end
 end
 
