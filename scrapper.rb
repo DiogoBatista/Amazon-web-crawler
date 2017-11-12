@@ -279,12 +279,6 @@ private
   end
 end
 
-class Results
-  def self.all
-    @@results ||= { success: 0, failed: 0, error: [], repeated: 0 }
-  end
-end
-
 File.open(ARGS[:file]).readlines.each do |url|
   next if @robot_found
   next if url[0] == "#" 
