@@ -86,7 +86,7 @@ def createProductFromUrl(url,apiHost,secret)
 	rescue OpenURI::HTTPError => e
 		@results[:failed] = @results[:failed] + 1 	
 		@results[:error] << {code: e.io.status[0].to_i, url: url }
-		return puts "Page not found" if res.code == '404'
+		return puts "Page not found"
 	end
 
 	if name = page.at_css('[id="productTitle"]')
