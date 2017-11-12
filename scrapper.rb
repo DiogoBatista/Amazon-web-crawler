@@ -14,13 +14,17 @@ def trimUrl(url)
 		url = url.gsub(/\/ref=.*/, '')
 	end
 
+	if url.include? "?"
+		url = url.split('?')[0]
+	end
+
 	url
 end
 
 def getImgUrlIfBase24(imgElement)
 	el = imgElement.css('img').attr('src')
 
-	if el.to_s.include? "data:image/jpeg;base64"
+	if el.to_s.include? "data:image"
 		el = JSON.parse(imgElement.css("img").attr("data-a-dynamic-image").value).keys[0]
 	end
 
