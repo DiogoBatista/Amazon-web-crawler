@@ -12,7 +12,7 @@ require 'json'
 
 USAGE = <<ENDUSAGE
 Usage:
-ruby scrapper.rb [--file PATH] [--api API] [--secret SECRET]
+ruby scrapper.rb --file PATH --api API [--secret SECRET]
 ENDUSAGE
 
 HELP = <<ENDHELP
