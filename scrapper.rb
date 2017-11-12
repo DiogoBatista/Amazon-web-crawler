@@ -95,10 +95,11 @@ def createProductFromUrl(url,apiHost,secret)
 		name = name.text.strip
 	end
 
-	@results[:failed] = @results[:failed] + 1 	
-	@results[:error] << {code: 'no-name', url: url }
-	return puts "No product name..." unless name
-	
+	unless name
+		@results[:failed] = @results[:failed] + 1 	
+		@results[:error] << {code: 'no-name', url: url }
+		return puts "No product name..."
+	end
 
 	price = page.at_css('[id="priceblock_ourprice"]')
 
@@ -111,27 +112,32 @@ def createProductFromUrl(url,apiHost,secret)
 	elsif price = page.at_css('.a-color-price')
 		price = price.text
 	end
-
-	@results[:failed] = @results[:failed] + 1 	
-	@results[:error] << {code: 'no-name', url: url }
-	return puts "No product price..." unless price
-
+	
+	unless price
+		@results[:failed] = @results[:failed] + 1 	
+		@results[:error] << {code: 'no-name', url: url }
+		return puts "No product price..."
+	end
+	
 	rating = page.at_css('[id="averageCustomerReviews"]').css('i.a-icon-star').css("span.a-icon-alt").text
 
-	@results[:failed] = @results[:failed] + 1 	
-	@results[:error] << {code: 'no-rating', url: url }
-	return puts "No product rating..." unless rating
+	unless rating
+		@results[:failed] = @results[:failed] + 1 	
+		@results[:error] << {code: 'no-rating', url: url }
+		return puts "No product rating..." 
+	end
 
 	if imgPageElement = page.at_css('[id="imgTagWrapperId"]')
 	elsif imgPageElement = page.at_css('#img-canvas')
 	elsif imgPageElement = page.at_css('#ebooks-img-canvas')
 	end
 
-
-	@results[:failed] = @results[:failed] + 1 	
-	@results[:error] << {code: 'no-image', url: url }
-	return puts "No product image..." unless imgPageElement
-
+	unless imgPageElement
+		@results[:failed] = @results[:failed] + 1 	
+		@results[:error] << {code: 'no-image', url: url }
+		return puts "No product image..." 
+	end
+	
 	imgUrl = getImgUrlIfBase24(imgPageElement)
 
 	currency = getCurrencyFromPrice(price)
