@@ -81,11 +81,13 @@ def createProductFromUrl(url,apiHost,secret)
 	puts ""
 	puts "Fetching '#{url}'..."
 
-	res = Net::HTTP.get_response(URI(url))
-	return puts "Page not found" if res.code == '404'
-
-	page = Nokogiri::HTML(open(url, allow_redirections: :safe, "User-Agent" => "", "From" => "foo@bar.invalid", "Referer" => "http://www.ruby-lang.org/"))
-	# todo add 503 response handler
+	begin
+		page = Nokogiri::HTML(open(url, allow_redirections: :safe, "User-Agent" => "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36", "From" => "foo@bar.invalid", "Referer" => "http://www.ruby-lang.org/"))
+	rescue OpenURI::HTTPError => e
+		@results[:failed] = @results[:failed] + 1 	
+		@results[:error] << {code: e.io.status[0].to_i, url: url }
+		return puts "Page not found" if res.code == '404'
+	end
 
 	if name = page.at_css('[id="productTitle"]')
 		name = name.text.strip
@@ -93,6 +95,8 @@ def createProductFromUrl(url,apiHost,secret)
 		name = name.text.strip
 	end
 
+	@results[:failed] = @results[:failed] + 1 	
+	@results[:error] << {code: 'no-name', url: url }
 	return puts "No product name..." unless name
 	
 
@@ -108,9 +112,14 @@ def createProductFromUrl(url,apiHost,secret)
 		price = price.text
 	end
 
+	@results[:failed] = @results[:failed] + 1 	
+	@results[:error] << {code: 'no-name', url: url }
 	return puts "No product price..." unless price
 
 	rating = page.at_css('[id="averageCustomerReviews"]').css('i.a-icon-star').css("span.a-icon-alt").text
+
+	@results[:failed] = @results[:failed] + 1 	
+	@results[:error] << {code: 'no-rating', url: url }
 	return puts "No product rating..." unless rating
 
 	if imgPageElement = page.at_css('[id="imgTagWrapperId"]')
@@ -118,6 +127,9 @@ def createProductFromUrl(url,apiHost,secret)
 	elsif imgPageElement = page.at_css('#ebooks-img-canvas')
 	end
 
+
+	@results[:failed] = @results[:failed] + 1 	
+	@results[:error] << {code: 'no-image', url: url }
 	return puts "No product image..." unless imgPageElement
 
 	imgUrl = getImgUrlIfBase24(imgPageElement)
@@ -153,13 +165,17 @@ else
 	secret = arguments[2].to_s	
 
 	File.open(file).readlines.each do |url|
-		next if url[0] == "#"
+		next if url[0] == "#" 
+		next if url.strip == ""
 		createProductFromUrl(url,apiHost,secret)	
 	end
+
 	puts ""
 	puts "Successes: #{@results[:success]}, Failed: #{@results[:failed]}, repeated #{@results[:repeated]}"
+
 	if @results[:error].length > 0 
 		puts ""
+
 		@results[:error].each do |e|
 			puts "#{e[:code]} >> #{e[:url]} "
 		end
