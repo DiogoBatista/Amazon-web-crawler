@@ -202,7 +202,7 @@ private
 
     unless price > 0.0
       @@results[:failed] = @@results[:failed] + 1 
-      @@results[:error] << {code: 'no-name', url: @url }
+      @@results[:error] << { code: 'no-price', url: @url }
 
       @broken = true
       puts "No product price..."
@@ -230,7 +230,7 @@ private
 
     unless rating
       @@results[:failed] = @@results[:failed] + 1 
-      @@results[:error] << {code: 'no-rating', url: @url }
+      @@results[:error] << { code: 'no-rating', url: @url }
 
       @broken = true
       puts "No product rating..." 
@@ -275,18 +275,26 @@ private
     check = @page.to_s.include? "Sorry, we just need to make sure you're not a robot."
     puts "Amazon is checking for robots... (ooops)" if check
 
+    @@results[:failed] = @@results[:failed] + 1 
+    @@results[:error] << { code: 'robot-check', url: @url }
+    
+    @broken = true
+
     check
   end
 end
 
-File.open(ARGS[:file]).readlines.each do |url|
+@line_count = `wc -l "#{ARGS[:file]}"`.strip.split(' ')[0].to_i
+
+File.open(ARGS[:file]).readlines.each_with_index do |url, i|
   next if @robot_found
   next if url[0] == "#" 
   next if url.strip == ""
 
+  puts "(#{i}/#{@line_count})"
   product = Product.fetch(url)
 
-  product.post(ARGS[:api], ARGS[:secret])
+  product.post(ARGS[:api], ARGS[:secret]) if product
 
   # wait 5 seconds to avoid Amazon bot detection
   sleep(5)
