@@ -53,10 +53,10 @@ end
 class Product
   def initialize(url)
     @url = clean_url(url)
-    @socialUrl = ""
     @name = ""
     @rating = ""
-    @image = ""
+    @photo = ""
+    @photo1000 = ""
     @price = 0.0
     @currency = ""
     @page = ""
@@ -74,12 +74,12 @@ class Product
   def params
     {
       name: @name,
-      photo: @image,
+      photo: @photo,
+      photo1000: @photo1000,
       price: @price,
       currency: @currency,
       rating: @rating,
       url: @url,
-      socialPhoto: @socialUrl
     }
   end
 
@@ -94,20 +94,25 @@ class Product
 
     @page = create_page
     return false if broken? or robot_check?
+    puts "* found page"
     
     @name = scrape_name
     return false if broken?
+    puts "* found name"
 
     @price = scrape_price
     return false if broken?
+    puts "* found price"
 
     @rating = scrape_rating
     return false if broken?
+    puts "* found rating"
 
     @image = scrape_image(400)
     return false if broken?
+    puts "* found image"
 
-    @socialPhoto = scrape_image(1000)
+    @photo1000 = scrape_image(1000)
     return false if broken?
 
     self
@@ -115,6 +120,7 @@ class Product
 
   def post(api, secret = nil)
     url = URI.parse(api)
+    puts "* POST to #{api}..."
 
     headers = { 'Content-Type' => 'application/json' }
     headers['Authorization'] = secret if secret
@@ -161,7 +167,7 @@ private
 
   def create_page
     begin
-      @page = Nokogiri::HTML(open(@url, allow_redirections: :safe, "User-Agent" => "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36"))
+      @page = Nokogiri::HTML(open(@url, allow_redirections: :safe, "User-Agent" => "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/62.0.3202.94 Safari/537.36"))
     rescue OpenURI::HTTPError => e
       code = e.io.status[0].to_i
       @@results[:failed] = @@results[:failed] + 1 
@@ -277,13 +283,14 @@ private
   end
 
   def robot_check?
-    check = @page.to_s.include? "Sorry, we just need to make sure you're not a robot."
-    puts "Amazon is checking for robots... (ooops)" if check
+    if check = @page.to_s.include?("Sorry, we just need to make sure you're not a robot.")
+      puts "Amazon is checking for robots... (ooops)"
 
-    @@results[:failed] = @@results[:failed] + 1 
-    @@results[:error] << { code: 'robot-check', url: @url }
-    
-    @broken = true
+      @@results[:failed] = @@results[:failed] + 1 
+      @@results[:error] << { code: 'robot-check', url: @url }
+      
+      @broken = true
+    end
 
     check
   end
@@ -301,8 +308,8 @@ File.open(ARGS[:file]).readlines.each_with_index do |url, i|
 
   product.post(ARGS[:api], ARGS[:secret]) if product
 
-  # wait 20 seconds to avoid Amazon bot detection
-  sleep(20)
+  # wait 10 seconds to avoid Amazon bot detection
+  sleep(10)
 
 end
 
