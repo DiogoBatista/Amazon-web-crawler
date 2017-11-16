@@ -108,7 +108,7 @@ class Product
     return false if broken?
     puts "* found rating"
 
-    @image = scrape_image(400)
+    @photo = scrape_image(400)
     return false if broken?
     puts "* found image"
 
