@@ -53,6 +53,7 @@ end
 class Product
   def initialize(url)
     @url = clean_url(url)
+    @socialUrl = ""
     @name = ""
     @rating = ""
     @image = ""
@@ -77,7 +78,8 @@ class Product
       price: @price,
       currency: @currency,
       rating: @rating,
-      url: @url
+      url: @url,
+      socialPhoto: @socialUrl
     }
   end
 
@@ -102,7 +104,10 @@ class Product
     @rating = scrape_rating
     return false if broken?
 
-    @image = scrape_image
+    @image = scrape_image(400)
+    return false if broken?
+
+    @socialPhoto = scrape_image(1000)
     return false if broken?
 
     self
@@ -239,7 +244,7 @@ private
     rating
   end
 
-  def scrape_image
+  def scrape_image(size)
     image = @page.at_css('#imgTagWrapperId img, #img-canvas img, #ebooks-img-canvas img')
 
     unless image
@@ -252,7 +257,7 @@ private
 
     source = get_image_url(image)
 
-    convert_image_url_to_size(source, 400)
+    convert_image_url_to_size(source, size)
   end
 
   def get_image_url(image)
@@ -296,8 +301,9 @@ File.open(ARGS[:file]).readlines.each_with_index do |url, i|
 
   product.post(ARGS[:api], ARGS[:secret]) if product
 
-  # wait 5 seconds to avoid Amazon bot detection
-  sleep(5)
+  # wait 20 seconds to avoid Amazon bot detection
+  sleep(20)
+
 end
 
 results = @@results
