@@ -134,6 +134,9 @@ class Product
     when 201
       puts "[201] Product #{@name} created."
       @@results[:success] = @@results[:success] + 1 
+    when 204
+      puts "[204] Product #{@name} updated."
+      @@results[:success] = @@results[:success] + 1 
     when 409
       puts "[409] Product #{@name} already existed."
       @@results[:repeated] = @@results[:repeated] + 1
