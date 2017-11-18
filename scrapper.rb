@@ -6,6 +6,7 @@ require 'open_uri_redirections'
 require 'byebug'
 require 'net/http'
 require 'json'
+require 'embiggen'
 
 @@results = { success: 0, failed: 0, error: [], repeated: 0 }
 @robot_found = false
@@ -156,6 +157,7 @@ private
 
   def clean_url(url)
     url = url.to_s.strip
+    url = Embiggen::URI(url).expand.to_s
 
     if url.include? "/ref="
       url = url.gsub(/\/ref=.*/, '')
@@ -170,7 +172,7 @@ private
 
   def create_page
     begin
-      @page = Nokogiri::HTML(open(@url, allow_redirections: :safe, "User-Agent" => "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/62.0.3202.94 Safari/537.36"))
+      @page = Nokogiri::HTML(open(@url, allow_redirections: :safe, "User-Agent" => "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13) AppleWebKit/604.1.38 (KHTML, like Gecko) Version/11.0 Safari/604.1.38"))
     rescue OpenURI::HTTPError => e
       code = e.io.status[0].to_i
       @@results[:failed] = @@results[:failed] + 1 
@@ -306,13 +308,13 @@ File.open(ARGS[:file]).readlines.each_with_index do |url, i|
   next if url[0] == "#" 
   next if url.strip == ""
 
-  puts "(#{i}/#{@line_count})"
+  puts "(#{i + 1}/#{@line_count + 1})"
   product = Product.fetch(url)
 
   product.post(ARGS[:api], ARGS[:secret]) if product
 
-  # wait 10 seconds to avoid Amazon bot detection
-  sleep(10)
+  # wait 5 seconds to avoid Amazon bot detection
+  sleep(5)
 
 end
 
