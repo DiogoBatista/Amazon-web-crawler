@@ -96,7 +96,7 @@ class Product
     @page = create_page
     return false if broken? or robot_check?
     puts "* found page"
-    
+
     @name = scrape_name
     return false if broken?
     puts "* found name"
@@ -120,6 +120,7 @@ class Product
   end
 
   def post(api, secret = nil)
+
     url = URI.parse(api)
     puts "* POST to #{api}..."
 
@@ -127,28 +128,55 @@ class Product
     headers['Authorization'] = secret if secret
 
     req = Net::HTTP::Post.new(url, headers)
+
+    puts "* req #{req}"
+
     req.body = params.to_json
 
-    res = Net::HTTP.start(url.hostname, url.port).request(req)
+    puts "* req #{req.body}"
+
+    puts "* POST to url.hostname #{url.hostname} url.port #{url.port}"
+
+    req_options = {
+      use_ssl: url.scheme == "https",
+    }
+
+    res = Net::HTTP.start(url.hostname, url.port, req_options).request(req)
+
+
+
+    # uri = URI.parse("https://glance-8b09e.firebaseio.com/message_list.json")
+    # request = Net::HTTP::Post.new(uri)
+    # request.body = JSON.dump({
+    #   "user_id" => "jack",
+    #   "text" => "Ahoy!"
+    # })
+
+
+
+    # response = Net::HTTP.start(uri.hostname, uri.port, req_options) do |http|
+    #   http.request(request)
+    # end
+
 
     case res.code.to_i
     when 201
       puts "[201] Product #{@name} created."
-      @@results[:success] = @@results[:success] + 1 
+      @@results[:success] = @@results[:success] + 1
     when 204
       puts "[204] Product #{@name} updated."
-      @@results[:success] = @@results[:success] + 1 
+      @@results[:success] = @@results[:success] + 1
     when 409
       puts "[409] Product #{@name} already existed."
       @@results[:repeated] = @@results[:repeated] + 1
     when 500
       puts "[500] Some weird error on the backend"
       puts "params: #{params}"
-      @@results[:failed] = @@results[:failed] + 1 
+      @@results[:failed] = @@results[:failed] + 1
       @@results[:error] << { code: res.code, url: @url }
-    else 
+    else
       puts res.inspect
-      @@results[:failed] = @@results[:failed] + 1 
+      @@results[:failed] = @@results[:failed] + 1
       @@results[:error] << { code: res.code, url: @url }
     end
   end
@@ -175,7 +203,7 @@ private
       @page = Nokogiri::HTML(open(@url, allow_redirections: :safe, "User-Agent" => "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13) AppleWebKit/604.1.38 (KHTML, like Gecko) Version/11.0 Safari/604.1.38"))
     rescue OpenURI::HTTPError => e
       code = e.io.status[0].to_i
-      @@results[:failed] = @@results[:failed] + 1 
+      @@results[:failed] = @@results[:failed] + 1
       @@results[:error] << { code: code, url: @url }
 
       @broken = true
@@ -193,7 +221,7 @@ private
     name = name.to_s
 
     if name.empty?
-      @@results[:failed] = @@results[:failed] + 1 
+      @@results[:failed] = @@results[:failed] + 1
       @@results[:error] << { code: 'no-name', url: @url }
 
       @broken = true
@@ -217,7 +245,7 @@ private
     price = price.to_f
 
     unless price > 0.0
-      @@results[:failed] = @@results[:failed] + 1 
+      @@results[:failed] = @@results[:failed] + 1
       @@results[:error] << { code: 'no-price', url: @url }
 
       @broken = true
@@ -245,11 +273,11 @@ private
     rating = @page.at_css('[id="averageCustomerReviews"]').css('i.a-icon-star').css("span.a-icon-alt").text
 
     unless rating
-      @@results[:failed] = @@results[:failed] + 1 
+      @@results[:failed] = @@results[:failed] + 1
       @@results[:error] << { code: 'no-rating', url: @url }
 
       @broken = true
-      puts "No product rating..." 
+      puts "No product rating..."
     end
 
     rating
@@ -259,11 +287,11 @@ private
     image = @page.at_css('#imgTagWrapperId img, #img-canvas img, #ebooks-img-canvas img')
 
     unless image
-      @@results[:failed] = @@results[:failed] + 1 
+      @@results[:failed] = @@results[:failed] + 1
       @@results[:error] << { code: 'unavailable', url: @url }
-      
+
       @broken = true
-      puts "No product image..." 
+      puts "No product image..."
     end
 
     source = get_image_url(image)
@@ -291,9 +319,9 @@ private
     if check = @page.to_s.include?("Sorry, we just need to make sure you're not a robot.")
       puts "Amazon is checking for robots... (ooops)"
 
-      @@results[:failed] = @@results[:failed] + 1 
+      @@results[:failed] = @@results[:failed] + 1
       @@results[:error] << { code: 'robot-check', url: @url }
-      
+
       @broken = true
     end
 
@@ -305,7 +333,7 @@ end
 
 File.open(ARGS[:file]).readlines.each_with_index do |url, i|
   next if @robot_found
-  next if url[0] == "#" 
+  next if url[0] == "#"
   next if url.strip == ""
 
   puts "(#{i + 1}/#{@line_count + 1})"
@@ -323,7 +351,7 @@ results = @@results
 puts ""
 puts "Successes: #{results[:success]}, Failed: #{results[:failed]}, repeated #{results[:repeated]}"
 
-if results[:error].length > 0 
+if results[:error].length > 0
   puts ""
 
   results[:error].each do |e|
