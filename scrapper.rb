@@ -60,6 +60,7 @@ class Product
     @photo1000 = ""
     @price = 0.0
     @currency = ""
+    @categories = []
     @page = ""
     @broken = false
   end
@@ -81,6 +82,7 @@ class Product
       currency: @currency,
       rating: @rating,
       url: @url,
+      categories: @categories
     }
   end
 
@@ -114,6 +116,9 @@ class Product
     puts "* found image"
 
     @photo1000 = scrape_image(1000)
+    return false if broken?
+
+    @categories = scrape_categories
     return false if broken?
 
     self
@@ -260,6 +265,22 @@ private
     end
 
     rating
+  end
+
+  def scrape_categories
+    breadcrumbs = @page.at_css('[id="wayfinding-breadcrumbs_feature_div"]').css('li .a-link-normal').map(&:text)
+
+    unless breadcrumbs
+      @@results[:failed] = @@results[:failed] + 1
+      @@results[:error] << { code: 'no-breadcrumbs', url: @url }
+
+      @broken = true
+      puts "No breadcrumbs rating..."
+    end
+
+    breadcrumbs.map do |breadcrumb|
+      breadcrumb = breadcrumb.gsub(/[[:space:]]/, '')
+    end
   end
 
   def scrape_image(size)
