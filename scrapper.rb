@@ -129,35 +129,14 @@ class Product
 
     req = Net::HTTP::Post.new(url, headers)
 
-    puts "* req #{req}"
-
     req.body = params.to_json
 
-    puts "* req #{req.body}"
-
-    puts "* POST to url.hostname #{url.hostname} url.port #{url.port}"
 
     req_options = {
       use_ssl: url.scheme == "https",
     }
 
     res = Net::HTTP.start(url.hostname, url.port, req_options).request(req)
-
-
-
-    # uri = URI.parse("https://glance-8b09e.firebaseio.com/message_list.json")
-    # request = Net::HTTP::Post.new(uri)
-    # request.body = JSON.dump({
-    #   "user_id" => "jack",
-    #   "text" => "Ahoy!"
-    # })
-
-
-
-    # response = Net::HTTP.start(uri.hostname, uri.port, req_options) do |http|
-    #   http.request(request)
-    # end
-
 
     case res.code.to_i
     when 201
